@@ -1,0 +1,64 @@
+/* Query 1 - used to answer question 1 */
+
+SELECT sub.film_title, sub.category_name, sub.rental_count
+FROM
+(SELECT f.title  AS film_title,  fc.film_id AS film_id, c.name AS category_name ,COUNT (r.rental_id) AS rental_count 
+FROM category c
+JOIN film_category fc
+  ON c.category_id = fc.category_id
+JOIN film f
+  ON fc.film_id=f.film_id
+JOIN inventory i 
+  ON f.film_id = i.film_id
+JOIN rental r
+  ON i.inventory_id=r.inventory_id
+GROUP BY f.title, fc.film_id, c.name
+ORDER BY 3,1) as sub
+WHERE sub.category_name = 'Animation' OR sub.category_name =  'Children' OR sub.category_name =  'Classics' OR sub.category_name = 'Comedy' OR sub.category_name =  'Family' OR sub.category_name =  'Music';
+
+/* Query 2 - used to answer question 2 */
+
+SELECT f.title AS "Movie Name" , c.name AS "Movie Category", f.rental_duration AS "Rental Duration",
+NTILE (4) OVER (ORDER BY rental_duration) AS "Percentil"
+FROM category c
+JOIN film_category fc
+  ON c.category_id = fc.category_id
+JOIN film f
+  ON fc.film_id=f.film_id
+WHERE c.name = 'Animation' OR c.name =  'Children' OR c.name =  'Classics' OR c.name = 'Comedy' OR c.name =  'Family' OR c.name =  'Music'
+ORDER BY 3;
+
+/* Query 3 - used to answer question 3 */
+
+SELECT sub."Movie_Category", sub."Percentil", COUNT(*)
+FROM
+(SELECT f.title AS "Movie_Name" , c.name AS "Movie_Category", f.rental_duration AS "Rental_Duration",
+NTILE (4) OVER (ORDER BY rental_duration) AS "Percentil"
+FROM category c
+JOIN film_category fc
+  ON c.category_id = fc.category_id
+JOIN film f
+  ON fc.film_id=f.film_id
+WHERE c.name = 'Animation' OR c.name =  'Children' OR c.name =  'Classics' OR c.name = 'Comedy' OR c.name =  'Family' OR c.name =  'Music'
+ORDER BY 3) AS sub
+GROUP BY 1,2
+ORDER BY 1,2;
+
+/* Query 4 - used to answer question 4 */
+
+WITH sub1 AS
+(SELECT DATE_TRUNC('month', p.payment_date) AS "Month", c.first_name || ' ' || c.last_name AS "Customer_Name", COUNT(*) AS "Pay_Count_per_Month", SUM (p.amount) AS "Payment"
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id
+GROUP BY 1,2
+ORDER BY 2  , 1) 
+
+SELECT sub1."Month", sub1."Customer_Name", sub1."Pay_Count_per_Month",sub1."Payment"
+FROM sub1
+JOIN (SELECT c.first_name || ' ' || c.last_name AS "Customer_Name", SUM (p.amount) AS "Total_Amount"
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id
+GROUP BY 1
+ORDER BY 2 DESC 
+LIMIT 10) AS sub2 ON sub2."Customer_Name" = sub1."Customer_Name"
+
